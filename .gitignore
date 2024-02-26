@@ -1,0 +1,18 @@
+
+# Ignored files and directories for Git
+
+# Workspace file
+tests/firebaseEnvTool.code-workspace
+
+# History directory
+.history
+
+# Tests directory
+tests
+
+# Node modules directory
+
+node_modules
+
+# VS Code directory
+/.vscode

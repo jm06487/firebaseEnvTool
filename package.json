@@ -1,0 +1,30 @@
+{
+  "name": "firebase-env-cli",
+  "version": "1.0.0",
+  "description": "A CLI tool for managing Firebase environment variables",
+  "main": "src/main.js",
+  "type": "module",
+  "bin": {
+    "fireEnv": "./src/main.js"
+  },
+  "scripts": {
+    "start": "node src/main.js",
+    "build": "rollup -c"
+  },
+  "keywords": [
+    "firebase",
+    "environment",
+    "CLI"
+  ],
+  "author": "Jaime Mac Gregor",
+  "license": "MIT",
+  "dependencies": {
+    "fkill": "^9.0.0",
+    "inquirer": "^9.2.15",
+    "shelljs": "^0.8.5"
+  },
+  "devDependencies": {
+    "rollup": "^4.12.0",
+    "rollup-plugin-terser": "^7.0.2"
+  }
+}
