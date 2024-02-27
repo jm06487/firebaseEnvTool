@@ -1,12 +1,12 @@
-import { terser } from 'rollup-plugin-terser';
+import typescript from "rollup-plugin-typescript2";
+import {terser} from "rollup-plugin-terser";
+import json from "@rollup/plugin-json";
 
 export default {
-  input: 'src/main.js',
+  input: "src/main.ts", // Change this to your main TypeScript file
   output: {
-    file: 'dist/bundle.js',
-    format: 'cjs' // CommonJS format
+    file: "dist/bundle.js",
+    format: "cjs", // CommonJS format
   },
-  plugins: [
-    terser()
-  ]
+  plugins: [typescript(), terser(), json()],
 };

@@ -1,7 +1,9 @@
 import inquirer from "inquirer";
 import shell from "shelljs";
-import {handleAuthenticationError} from "./authentication.js";
-import {startSession} from "./session.js";
+
+import {RESERVED_KEYS} from "../config/reservedKeys";
+import {handleAuthenticationError} from "./authentication";
+import {startSession} from "./session";
 
 /**
  * Prompts the user to set an environment variable and sets it using the Firebase CLI.
@@ -14,6 +16,17 @@ export function setEnvVarPrompt() {
         type: "input",
         message: "Enter the name of the environment variable:",
         name: "envVarName",
+        validate: function (input) {
+          if (
+            RESERVED_KEYS.includes(input.toUpperCase()) ||
+            input.startsWith("X_GOOGLE_") ||
+            input.startsWith("EXT_") ||
+            input.startsWith("FIREBASE_")
+          ) {
+            return "This key is reserved for internal use. Please enter a different key.";
+          }
+          return true;
+        },
       },
       {
         type: "input",
@@ -21,10 +34,10 @@ export function setEnvVarPrompt() {
         name: "envVarValue",
       },
     ])
-    .then(answers => {
+    .then((answers) => {
       shell.exec(
         `firebase functions:config:set ${answers.envVarName}=${answers.envVarValue}`,
-        (code, stdout, stderr) => {
+        (code: number, stdout: string, stderr: string) => {
           if (code !== 0) {
             if (stderr.includes("Authentication Error")) {
               handleAuthenticationError(
@@ -40,7 +53,7 @@ export function setEnvVarPrompt() {
         },
       );
     })
-    .catch(error => {
+    .catch((error) => {
       console.error("An error occurred:", error);
       startSession(); // Return to the main menu
     });
@@ -52,7 +65,7 @@ export function setEnvVarPrompt() {
  * @returns {void}
  */
 export function unsetEnvVarPrompt() {
-  shell.exec("firebase functions:config:get", (code, stdout, stderr) => {
+  shell.exec("firebase functions:config:get", (code: number, stdout: string, stderr: string) => {
     if (code !== 0) {
       if (stderr.includes("Authentication Error")) {
         handleAuthenticationError("Your credentials are no longer valid. Please reauthenticate.");
@@ -73,7 +86,7 @@ export function unsetEnvVarPrompt() {
           message: "Select environment variables to unset",
           name: "selectedNames",
           choices: envVarNames,
-          validate: function(answer) {
+          validate: function (answer) {
             if (answer.length < 1) {
               return "You must choose at least one environment variable.";
             }
@@ -81,10 +94,10 @@ export function unsetEnvVarPrompt() {
           },
         },
       ])
-      .then(answers => {
+      .then((answers) => {
         Promise.all(answers.selectedNames.map(unsetEnvVar)).then(() => startSession());
       })
-      .catch(error => {
+      .catch((error) => {
         console.error("An error occurred:", error);
         startSession(); // Return to the main menu
       });

@@ -1,6 +1,6 @@
-import {config, generateConfigFile} from "./utils/config.js";
-import {checkAuthentication} from "./utils/authentication.js";
-import {startSession} from "./utils/session.js";
+import {checkAuthentication} from "./utils/authentication";
+import errorHandler from "./utils/errorHandler";
+import {startSession} from "./utils/session";
 
 /**
  * Main function that initializes the application.
@@ -15,8 +15,7 @@ async function main() {
     // Start the session
     startSession();
   } catch (error) {
-    console.error("An error occurred:", error.message);
-    process.exit(1);
+    errorHandler(error).then(() => process.exit(1));
   }
 }
 main();

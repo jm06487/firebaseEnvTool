@@ -1,0 +1,29 @@
+{
+  "printWidth": 100,
+  "singleQuote": false,
+  "semi": true,
+  "trailingComma": "all",
+  "bracketSpacing": false,
+  "endOfLine": "lf",
+  "jsxBracketSameLine": false,
+  "jsxSingleQuote": false,
+  "htmlWhitespaceSensitivity": "css",
+  "indent": [
+    2,
+    4
+  ],
+  "proseWrap": "always",
+  "ts": {
+    "semi": true,
+    "singleQuote": true,
+    "trailingComma": "all",
+    "arrowParens": "always",
+    "printWidth": 100,
+    "endOfLine": "lf"
+  },
+  "json": {
+    "printWidth": 0,
+    "trailingComma": "none",
+    "bracketSpacing": false
+  }
+}
