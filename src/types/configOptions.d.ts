@@ -59,3 +59,16 @@ export interface ConfigOption {
 export interface UserConfigOptions {
   [key: string]: ConfigOption;
 }
+
+/**
+ * Represents the structure of the Gen1 runtime configuration.
+ */
+export interface Gen1RuntimeConfig {
+  [key: string]: any | Gen1RuntimeConfig;
+}
+
+/**
+ * Represents the type of configuration options.
+ * It can be either UserConfigOptions or Gen1RuntimeConfig.
+ */
+export type ConfigType = UserConfigOptions | Gen1RuntimeConfig;

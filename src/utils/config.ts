@@ -1,10 +1,14 @@
-import fs from "fs";
-import os from "os";
+// config.ts
+
+import * as fs from "fs";
+import * as os from "os";
 import {join} from "path";
 import inquirer from "inquirer";
+import {USER_CONFIG_OPTIONS} from "../config/cliConfigOptions";
 import errorHandler from "./errorHandler";
-import {startSession} from "./session";
-import {USER_CONFIG_OPTIONS} from "src/config/cliConfigOptions";
+
+import {state} from "./state";
+import eventEmitter from "./events";
 
 /**
  * Determines the appropriate configuration directory based on the operating system.
@@ -47,7 +51,9 @@ function getConfigDirectory() {
  * @param {string} configFilePath - The path to the configuration file.
  * @returns {Object} The default configuration object.
  */
-async function generateConfigFile(configFilePath: string) {
+export async function generateConfigFile(configFilePath: string) {
+  console.log("Inside generateConfigFile function"); // Debugging log
+
   const questions = Object.entries(USER_CONFIG_OPTIONS).map(([key, value]) => ({
     type: value.type,
     name: key,
@@ -58,19 +64,23 @@ async function generateConfigFile(configFilePath: string) {
   }));
 
   try {
+    console.log("Before inquirer.prompt"); // Debugging log
     const answers = await inquirer.prompt(questions);
+    console.log("After inquirer.prompt"); // Debugging log
+
     fs.writeFileSync(configFilePath, JSON.stringify(answers, null, 2));
     return answers;
   } catch (error) {
     errorHandler(error).then(() => process.exit(1));
   }
 }
+
 /**
  * Read and parse the configuration file if it exists, otherwise generate a default configuration file.
  * @param {string} configFilePath - The path to the configuration file.
  * @returns {Object} The configuration object.
  */
-function readConfig(configFilePath: string) {
+export function readConfig(configFilePath: string) {
   let config;
   try {
     if (fs.existsSync(configFilePath)) {
@@ -95,112 +105,63 @@ function readConfig(configFilePath: string) {
 }
 
 // Function to prompt user for editing config
-function editConfigPrompt() {
+export async function editConfigPrompt() {
   // Get the keys of the config object
-  const configKeys = Object.keys(config);
+  const configKeys = Object.keys(state.config);
 
-  inquirer
-    .prompt([
+  try {
+    const answers = await inquirer.prompt([
       {
         type: "list",
         name: "configOption",
         message: "Select the config option you want to edit:",
         choices: [...configKeys, "Enable an option", "Disable an option", "Return to main menu"],
       },
-    ])
-    .then((answers) => {
-      if (answers.configOption === "Enable an option") {
-        enableConfigOption();
-      } else if (answers.configOption === "Disable an option") {
-        disableConfigOption();
-      } else if (answers.configOption === "Return to main menu") {
-        startSession(); // Start a new session
-      }
-    })
-    .catch((error) => {
-      errorHandler(error).then(() => process.exit(1));
-    });
+    ]);
+
+    if (answers.configOption === "Enable an option") {
+      eventEmitter.emit("enableConfigOption");
+    } else if (answers.configOption === "Disable an option") {
+      eventEmitter.emit("disableConfigOption");
+    } else if (answers.configOption === "Return to main menu") {
+      eventEmitter.emit("startSession"); // Return to the main menu
+    }
+  } catch (error) {
+    await errorHandler(error);
+    process.exit(1);
+  }
 }
 
-function enableConfigOption() {
-  // Filter out the options that are already in the config
-  const optionsToAdd = Object.keys(USER_CONFIG_OPTIONS).filter(
-    (option) => !config.hasOwnProperty(option),
-  );
+/**
+ * Function to disable a config option
+ */
+export async function disableConfigOption() {
+  console.log("disableConfigOption called");
 
-  inquirer
-    .prompt([
-      {
-        type: "list",
-        name: "key",
-        message: "Select the config option you want to enable:",
-        choices: optionsToAdd,
-      },
-    ])
-    .then((answers) => {
-      const optionPrompt = USER_CONFIG_OPTIONS[answers.key];
-      inquirer
-        .prompt([
-          {
-            ...optionPrompt,
-            name: "value",
-          },
-        ])
-        .then((optionAnswers) => {
-          // Add the new option to the config object
-          config[answers.key] = optionAnswers.value;
+  const configKeys = Object.keys(state.config) as (keyof typeof state.config)[];
 
-          // Write the updated config object to the config file
-          fs.writeFileSync(configFilePath, JSON.stringify(config, null, 2));
-
-          console.log("Config option enabled successfully.");
-          editConfigPrompt(); // Return to the main menu
-        })
-        .catch((error) => {
-          errorHandler(error).then(() => process.exit(1));
-        });
-    })
-    .catch((error) => {
-      errorHandler(error).then(() => process.exit(1));
-    });
-}
-
-function disableConfigOption() {
-  // Get the keys of the config object
-  const configKeys = Object.keys(config);
-
-  inquirer
-    .prompt([
+  try {
+    const answers = await inquirer.prompt([
       {
         type: "list",
         name: "configOption",
         message: "Select the config option you want to disable:",
         choices: configKeys,
       },
-    ])
-    .then((answers) => {
-      // Delete the selected option from the config object
-      delete config[answers.configOption];
+    ]);
 
-      // Write the updated config object to the config file
-      fs.writeFileSync(configFilePath, JSON.stringify(config, null, 2));
+    // Set the selected config option to undefined
+    state.config[answers.configOption] = undefined;
 
-      console.log("Config option disabled successfully.");
-      editConfigPrompt(); // Return to the main menu
-    })
-    .catch((error) => {
-      errorHandler(error).then(() => process.exit(1));
-    });
+    // Log the updated state for debugging purposes
+    console.log("After disabling:", state.config);
+
+    const configFilePath = "../../tests/config.json"; // Replace with actual path
+    fs.writeFileSync(configFilePath, JSON.stringify(state.config, null, 2));
+
+    console.log("Config option disabled successfully.");
+  } catch (error) {
+    console.error("Error:", error);
+    process.exit(1);
+  }
 }
-
-// Other functions for editing config...
-
-// Get the configuration directory
-const configDir = getConfigDirectory();
-// File path for the config.json file
-const configFilePath = join(configDir, "config.json");
-// Read the configuration file
-const config = readConfig(configFilePath);
-
-// Export the editConfigPrompt function along with other functions
-export {config, getConfigDirectory, generateConfigFile, readConfig, editConfigPrompt};

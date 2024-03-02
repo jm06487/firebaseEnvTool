@@ -1,9 +1,10 @@
 import inquirer from "inquirer";
-import shell from "shelljs";
+import {spawn} from "child_process";
 
 import {RESERVED_KEYS} from "../config/reservedKeys";
 import {handleAuthenticationError} from "./authentication";
-import {startSession} from "./session";
+import errorHandler from "./errorHandler";
+import eventEmitter from "./events";
 
 /**
  * Prompts the user to set an environment variable and sets it using the Firebase CLI.
@@ -35,28 +36,61 @@ export function setEnvVarPrompt() {
       },
     ])
     .then((answers) => {
-      shell.exec(
-        `firebase functions:config:set ${answers.envVarName}=${answers.envVarValue}`,
-        (code: number, stdout: string, stderr: string) => {
-          if (code !== 0) {
-            if (stderr.includes("Authentication Error")) {
-              handleAuthenticationError(
-                "Your credentials are no longer valid. Please reauthenticate.",
-              );
-            } else {
-              console.error("Error setting an environment variable:", stderr);
-            }
-            return;
-          }
+      const firebaseCommand = spawn("firebase", [
+        "functions:config:set",
+        `${answers.envVarName}=${answers.envVarValue}`,
+      ]);
+
+      firebaseCommand.stdout.on("data", (data) => {
+        console.log(`stdout: ${data}`);
+      });
+
+      firebaseCommand.stderr.on("data", (data) => {
+        const stderr = data.toString();
+        if (stderr.includes("Authentication Error")) {
+          handleAuthenticationError("Your credentials are no longer valid. Please reauthenticate.");
+        } else {
+          console.error("Error setting an environment variable:", stderr);
+        }
+      });
+
+      firebaseCommand.on("close", (code) => {
+        if (code === 0) {
           console.log("Environment variable set successfully.");
-          startSession(); // Return to the main menu
-        },
-      );
+          eventEmitter.emit("startSession"); // Return to the main menu
+        }
+      });
     })
     .catch((error) => {
       console.error("An error occurred:", error);
-      startSession(); // Return to the main menu
+      eventEmitter.emit("startSession"); // Return to the main menu
     });
+}
+
+export function unsetEnvVar(name: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const firebaseCommand = spawn("firebase", ["functions:config:unset", name]);
+
+    firebaseCommand.stdout.on("data", (data) => {
+      console.log(`stdout: ${data}`);
+    });
+
+    firebaseCommand.stderr.on("data", (data) => {
+      const stderr = data.toString();
+      if (stderr) {
+        errorHandler(new Error(stderr));
+      }
+    });
+
+    firebaseCommand.on("close", (code) => {
+      if (code === 0) {
+        console.log(`Environment variable ${name} unset successfully.`);
+        resolve();
+      } else {
+        reject(new Error(`Failed to unset environment variable ${name}`));
+      }
+    });
+  });
 }
 
 /**
@@ -65,17 +99,10 @@ export function setEnvVarPrompt() {
  * @returns {void}
  */
 export function unsetEnvVarPrompt() {
-  shell.exec("firebase functions:config:get", (code: number, stdout: string, stderr: string) => {
-    if (code !== 0) {
-      if (stderr.includes("Authentication Error")) {
-        handleAuthenticationError("Your credentials are no longer valid. Please reauthenticate.");
-        return;
-      }
-      console.error("Error fetching environment variables:", stderr);
-      console.log("Retrying...");
-      return unsetEnvVarPrompt();
-    }
+  const firebaseCommand = spawn("firebase", ["functions:config:get"]);
 
+  firebaseCommand.stdout.on("data", (data) => {
+    const stdout = data.toString();
     const envVars = JSON.parse(stdout);
     const envVarNames = Object.keys(envVars);
 
@@ -95,11 +122,24 @@ export function unsetEnvVarPrompt() {
         },
       ])
       .then((answers) => {
-        Promise.all(answers.selectedNames.map(unsetEnvVar)).then(() => startSession());
+        Promise.all(
+          answers.selectedNames.map((name: string) => eventEmitter.emit("unsetEnvVar", name)),
+        ).then(() => eventEmitter.emit("startSession"));
       })
       .catch((error) => {
         console.error("An error occurred:", error);
-        startSession(); // Return to the main menu
+        eventEmitter.emit("startSession"); // Return to the main menu
       });
+  });
+
+  firebaseCommand.stderr.on("data", (data) => {
+    const stderr = data.toString();
+    if (stderr.includes("Authentication Error")) {
+      handleAuthenticationError("Your credentials are no longer valid. Please reauthenticate.");
+    } else {
+      console.error("Error fetching environment variables:", stderr);
+      console.log("Retrying...");
+      eventEmitter.emit("unsetEnvVarPrompt");
+    }
   });
 }

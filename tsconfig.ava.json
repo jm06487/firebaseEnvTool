@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node", "ava"],
+    "esModuleInterop": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true
+  },
+  "compile": {
+    "lib": ["esnext"],
+    "module": "commonjs",
+    "target": "es2018"
+  }
+}

@@ -1,7 +1,6 @@
 import inquirer from "inquirer";
-import {setEnvVarPrompt, unsetEnvVarPrompt} from "./envVarManagement";
-import {editConfigPrompt} from "./config";
 import errorHandler from "./errorHandler";
+import eventEmitter from "./events";
 
 /**
  * Starts a session for environment variable management.
@@ -23,11 +22,11 @@ function startSession() {
     ])
     .then((answers) => {
       if (answers.operation === "Set environment variable") {
-        setEnvVarPrompt();
+        eventEmitter.emit("setEnvVarPrompt");
       } else if (answers.operation === "Unset environment variable") {
-        unsetEnvVarPrompt();
+        eventEmitter.emit("unsetEnvVarPrompt");
       } else if (answers.operation === "Edit firebase-env-cli config") {
-        editConfigPrompt();
+        eventEmitter.emit("editConfigPrompt");
       } else if (answers.operation === "End session") {
         console.log("Session ended.");
         process.exit(); // Terminate the program when the session ends
@@ -38,4 +37,5 @@ function startSession() {
       process.exit(1);
     });
 }
+
 export {startSession};

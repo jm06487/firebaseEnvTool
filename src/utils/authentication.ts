@@ -33,6 +33,7 @@ async function handleAuthenticationError(errorMessage: string) {
  */
 async function checkAuthentication() {
   return new Promise<void>((resolve, reject) => {
+    console.log("Checking authentication...");
     const firebaseAuth = spawn("firebase", ["login:list"], {shell: true});
 
     firebaseAuth.stdout.on("data", (data) => {

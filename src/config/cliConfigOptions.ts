@@ -1,4 +1,4 @@
-import {ConfigOptions, UserConfigOptions} from "src/types/configOptions";
+import {ConfigOptions, UserConfigOptions} from "../types/configOptions";
 
 /**
  * User configuration options for the CLI.
