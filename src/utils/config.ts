@@ -80,6 +80,7 @@ export async function generateConfigFile(configFilePath: string) {
  * @param {string} configFilePath - The path to the configuration file.
  * @returns {Object} The configuration object.
  */
+
 export function readConfig(configFilePath: string) {
   let config;
   try {

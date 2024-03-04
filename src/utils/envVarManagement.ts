@@ -2,9 +2,10 @@ import inquirer from "inquirer";
 import {spawn} from "child_process";
 
 import {RESERVED_KEYS} from "../config/reservedKeys";
-import {handleAuthenticationError} from "./authentication";
+
 import errorHandler from "./errorHandler";
 import eventEmitter from "./events";
+import {handleAuthenticationError} from "./authentication";
 
 /**
  * Prompts the user to set an environment variable and sets it using the Firebase CLI.
@@ -17,7 +18,7 @@ export function setEnvVarPrompt() {
         type: "input",
         message: "Enter the name of the environment variable:",
         name: "envVarName",
-        validate: function (input) {
+        validate: function (input: string) {
           if (
             RESERVED_KEYS.includes(input.toUpperCase()) ||
             input.startsWith("X_GOOGLE_") ||
@@ -113,7 +114,7 @@ export function unsetEnvVarPrompt() {
           message: "Select environment variables to unset",
           name: "selectedNames",
           choices: envVarNames,
-          validate: function (answer) {
+          validate: function (answer: any) {
             if (answer.length < 1) {
               return "You must choose at least one environment variable.";
             }

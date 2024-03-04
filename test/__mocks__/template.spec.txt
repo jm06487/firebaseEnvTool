@@ -1,0 +1,20 @@
+/**
+ * This file contains unit tests for the `__EVENT__` event.
+ * The `__EVENT__` event is responsible for __DESCRIPTION__.
+ */
+import eventEmitter from "__PATH_TO_EVENT_EMITTER__";
+import inquirer from "inquirer";
+
+describe("__EVENT__", () => {
+  beforeEach(() => {
+    spyOn(inquirer, "prompt").and.resolveTo(__MOCK_VALUE__);
+    eventEmitter.removeAllListeners("__EVENT__"); // Clear all event listeners before each test
+  });
+
+  it("should __EXPECTED_BEHAVIOR__ when __EVENT__ event is emitted", async () => {
+    eventEmitter.emit("__EVENT__");
+    expect(__ASSERTION__).toHaveBeenCalled();
+  });
+
+  // Add more test cases as needed
+});

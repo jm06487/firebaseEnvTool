@@ -1,0 +1,9 @@
+{
+  "parser": "@typescript-eslint/parser",
+  "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
+  "rules": {
+    "@typescript-eslint/no-unused-vars": "warn", // Warn about unused variables
+    "semi": ["error", "always"], // Enforce semicolons at the end of statements
+    "quotes": ["error", "double"] // Enforce double quotes
+  }
+}

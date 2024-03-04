@@ -1,6 +1,7 @@
 import {checkAuthentication} from "./utils/authentication";
 import errorHandler from "./utils/errorHandler";
 import {setupListeners} from "./utils/eventsHandler";
+import Logger from "./utils/logger";
 import {startSession} from "./utils/session";
 
 /**
@@ -10,11 +11,11 @@ import {startSession} from "./utils/session";
  */
 async function main() {
   try {
-    // Check if the user is authenticated with Firebase
-    await checkAuthentication();
-
+    Logger.log("Initializing the application...");
     // Set up the listeners before starting the session
     setupListeners();
+    // Check if the user is authenticated with Firebase
+    await checkAuthentication();
     // Start the session
     startSession();
   } catch (error) {

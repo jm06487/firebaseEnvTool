@@ -17,3 +17,5 @@ node_modules
 # VS Code directory
 /.vscode
 dist
+logs
+.env
