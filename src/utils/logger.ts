@@ -1,16 +1,54 @@
 import * as fs from "fs";
 import * as path from "path";
-const {Logtail} = require("@logtail/node");
+import {createLogger, transports, format, log} from "winston"; // Install Winston dependency: npm install winston
+import {LoggerConfig} from "../types/logger.interface";
 
+/**
+ * Debug logger instance for internal debugging messages.
+ */
+const debugLogger = createLogger({
+  level: "debug",
+  format: format.combine(
+    format.timestamp({format: "YYYY-MM-DD HH:mm:ss"}), // Correct usage
+    format.printf(({level, message, timestamp}) => {
+      return `[${level}] ${timestamp} - ${message}`;
+    }),
+  ),
+  transports: [new transports.Console()],
+});
+/**
+ * Logs a debug message to the debug logger.
+ *
+ * @param {string} message The message to be logged.
+ */
+function logDebug(message: string): void {
+  debugLogger.debug(message);
+}
+
+/**
+ * Represents a logger utility for writing log messages to a file.
+ *
+ * Implements a singleton pattern to ensure only one instance exists
+ * per unique log file path.
+ */
 class Logger {
   private static instances: Record<string, Logger> = {};
-  private logtail = new Logtail("$SOURCE_TOKEN");
   private logStream!: fs.WriteStream;
   private writeQueue: string[] = [];
   private isWriting = false;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private constructor(private logFilePath: string) {
-    this.setLogFilePath(logFilePath);
+  private static readonly defaultConfig: LoggerConfig = {
+    filePath: "logs/session.log",
+    level: "info",
+  };
+
+  /**
+   * Creates a new Logger instance for the specified log file path.
+   *
+   * @param {string} filePath The path to the log file.
+   */
+  constructor(private filePath: string) {
+    ////  logDebug(`setting log file path ${filePath}`);
+    this.setLogFilePath(filePath);
   }
 
   private static getInstance(logFilePath: string) {
@@ -30,9 +68,13 @@ class Logger {
   private setLogFilePath(logFilePath: string) {
     try {
       const safePath = path.resolve(path.normalize(logFilePath));
+      //// logDebug(`Creating log file at: ${safePath}`); // Debugging statement
       fs.mkdirSync(path.dirname(safePath), {recursive: true});
+      ////  logDebug(`Log file directory created at: ${path.dirname(safePath)}`); // Debugging statement
       this.logStream = fs.createWriteStream(safePath, {flags: "a"});
+      //// logDebug(`Log file created at: ${safePath}`); // Debugging statement
     } catch (error) {
+      //// logDebug(`Error creating log file: ${error}`); // Debugging statement
       Logger.logError(`Error creating log file: ${error}`);
     }
   }
@@ -64,6 +106,7 @@ class Logger {
           this.logStream.write(`[${timestamp}] ${message}\n`, (err) => {
             if (err) {
               // Reject the promise if an error occurs during writing
+
               reject(err);
             } else {
               // Resolve the promise on successful write
@@ -97,6 +140,7 @@ class Logger {
     } catch (error) {
       const errorMessage: string = (error as Error).message; // Assert error to be of type Error
       // Log the error to the error log file
+
       Logger.logError(errorMessage, logDir);
 
       // Consider additional error handling strategies as needed
@@ -115,14 +159,11 @@ class Logger {
    * @param {string} message The message to be logged.
    * @param {string} [logFilePath="logs/session.log"] The path to the log file. (Default: "logs/session.log")
    * @returns {Promise<void>} A promise that resolves when the message is logged and the log stream is closed,
-   *                          or rejects on error.
+   *                         or rejects on error.
    */
-  static async log(message: string, logFilePath: string = "logs/session.log"): Promise<void> {
-    const logger = Logger.getInstance(logFilePath);
-    console.log("Intended log file path:", logFilePath); // Debugging statement
-
-    // Add debugging statement
-    console.log("Calling logMessage with:", logFilePath);
+  static async log(message: string, filePath: string): Promise<void> {
+    const logger = Logger.getInstance(filePath);
+    logDebug(`Calling logMessage with: ${filePath}`);
 
     await logger.logMessage(message);
     try {
@@ -133,14 +174,25 @@ class Logger {
   }
 
   static end(logFilePath: string = "logs/session.log") {
+    logDebug(`Calling end with: ${logFilePath}`); // Debugging statement
     const logger = Logger.getInstance(logFilePath);
     try {
       logger.logStream.end();
+      logDebug(`Log file closed at: ${logFilePath}`); // Debugging statement
     } catch (error) {
+      logDebug(`Error closing log file: ${error}`); // Debugging statement
       Logger.logError(`Error closing log file: ${error}`);
     }
   }
 
+  /**
+   * Logs an error message to a separate "error.log" file or a custom error log file if provided.
+   *
+   * @static
+   * @param {string} errorMessage The error message to be logged.
+   * @param {string} [logDir="logs"] The directory path for the error log file (optional).
+   *                      If not provided, logs to the default "logs/error.log" file.
+   */
   static logError(errorMessage: string, logDir?: string): void {
     const timestamp = new Date().toISOString();
     const formattedMessage = `[${timestamp}] ${errorMessage}\n`; // Add timestamp and newline
